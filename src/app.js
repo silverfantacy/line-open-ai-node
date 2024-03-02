@@ -179,12 +179,12 @@ function saveCustomfile(hash, model) {
 async function getCustomConfig(hash) {
   const directory = path.join(__dirname, 'custom');
   if (!fs.existsSync(directory)) {
-    return null;
+    return { currentModel: OPENAI_MODEL };
   } else {
     const fileName = `${hash}.txt`;
     const filePath = path.join(directory, fileName);
     if (!fs.existsSync(filePath)) {
-      return null;
+      return { currentModel: OPENAI_MODEL };
     } else {
       const content = fs.readFileSync(filePath, 'utf-8');
       const [model] = content.split('\n\n');
