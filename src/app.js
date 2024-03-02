@@ -22,7 +22,7 @@ const bot = new line.Client(config);
 const quickReply = {
   items: [
     createQuickReplyItem("新話題", "!新話題"),
-    createQuickReplyItem("Modal查詢", "!Modal查詢"),
+    createQuickReplyItem("model查詢", "!model查詢"),
     createQuickReplyItem("GPT-3.5", "!GPT-3.5-Turbo"),
     createQuickReplyItem("GPT-4", "!GPT-4-0125-Preview")
   ]
@@ -75,7 +75,7 @@ async function handleEvent(event) {
         fs.renameSync(directory, path.join(__dirname, 'users', newDirectoryName));
         return bot.replyMessage(event.replyToken, { type: 'text', text: '已經開啟新話題', quickReply });
       }
-    case '!Modal查詢':
+    case '!model查詢':
       {
         const { currentModel } = await getCustomConfig(hash);
         return bot.replyMessage(event.replyToken, { type: 'text', text: `目前使用: ${currentModel}`, quickReply });
