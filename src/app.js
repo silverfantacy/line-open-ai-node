@@ -8,7 +8,9 @@ const path = require('path');
 
 const CHANNEL_ACCESS_TOKEN = process.env["CHANNEL_ACCESS_TOKEN"];
 const CHANNEL_SECRET = process.env["CHANNEL_SECRET"];
+const OPENAI_END_POINT = process.env["OPENAI_END_POINT"] || 'https://api.openai.com';
 const OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
+const OPENAI_MODEL = process.env["OPENAI_MODEL"] || 'gpt-3.5-turbo';
 
 // 建立 LINE Bot 物件
 const config = {
@@ -63,13 +65,13 @@ async function handleEvent(event) {
         { role: "user", content: requestString }
       ];
       const options = {
-        url: 'https://api.openai.com/v1/chat/completions',
+        url: `${OPENAI_END_POINT}/v1/chat/completions`,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         json: {
-          model: 'gpt-3.5-turbo',
+          model: `${OPENAI_MODEL}`,
           messages,
           temperature: 0.9,
           max_tokens: 256 * 1,
@@ -92,6 +94,7 @@ async function handleEvent(event) {
               fs.mkdirSync(directory);
             }
             const filePath = path.join(directory, fileName);
+            console.log(body)
             const content = `Question: ${message.text}\n\nAnswer: ${body.choices[0].message.content.trim()}`;
             fs.writeFileSync(filePath, content);
             resolve(bot.replyMessage(event.replyToken, {
