@@ -101,6 +101,7 @@ async function handleEvent(event) {
       {
         const { currentModel } = await getCustomConfig(hash);
         if (currentModel === 'dall-e-3' && requestString.length > 0) {
+          bot.replyMessage(event.replyToken, { type: 'text', text: '圖片產生中，請稍後...', quickReply });
           const imageGenerationResponse = await generateImage(requestString);
           if (imageGenerationResponse) {
             const imageUrl = imageGenerationResponse.data[0].url;
@@ -113,21 +114,17 @@ async function handleEvent(event) {
             const content = `User: ${userId}\n\nPrompt: ${requestString}\n\nImage: ${imageUrl}\n\nrevised_prompt: ${imageGenerationResponse.data[0].revised_prompt}`;
             fs.writeFileSync(filePath, content);
 
-            bot.replyMessage(event.replyToken,
+            bot.pushMessage(event.source.userId,
               {
-                type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl, notificationDisabled: true,
+                type: 'image',
+                originalContentUrl: imageUrl,
+                previewImageUrl: imageUrl,
+                // notificationDisabled: true,
                 quickReply
               })
-            // bot.replyMessage(event.replyToken,
-            //   {
-            //     type: 'text',
-            //     text: `圖片生成成功\n${imageUrl}`,
-            //     notificationDisabled: true,
-            //     quickReply
-            //   });
             return
           } else {
-            return bot.replyMessage(event.replyToken, { type: 'text', text: '圖片生成失敗' });
+            return bot.pushMessage(event.source.userId, { type: 'text', text: '圖片製作失敗', quickReply });
           }
         }
         const previousMessages = await getPreviousMessages(hash);
@@ -171,7 +168,7 @@ async function handleEvent(event) {
               resolve(bot.replyMessage(event.replyToken, {
                 type: 'text',
                 text: body.choices[0].message.content.trim(),
-                notificationDisabled: true,
+                // notificationDisabled: true,
                 quickReply
               }));
             }
