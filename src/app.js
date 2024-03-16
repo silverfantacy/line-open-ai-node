@@ -25,7 +25,7 @@ const quickReply = {
     createQuickReplyItem("model查詢", "!model查詢"),
     createQuickReplyItem("GPT-3.5", "!GPT-3.5-Turbo"),
     createQuickReplyItem("GPT-4-Turbo", "!GPT-4-Turbo"),
-    // createQuickReplyItem("GPT-4", "!GPT-4-0125-Preview")
+    createQuickReplyItem("製作圖片", "!製作圖片"),
   ]
 };
 
@@ -64,8 +64,8 @@ async function handleEvent(event) {
     return null;
   }
 
-  const user_id = 'line_' + event.source.userId;
-  const hash = crypto.createHash('sha256').update(user_id).digest('hex');
+  const userId = 'line_' + event.source.userId;
+  const hash = crypto.createHash('sha256').update(userId).digest('hex');
   const requestString = message.text;
 
   switch (requestString) {
@@ -74,31 +74,62 @@ async function handleEvent(event) {
         const directory = path.join(__dirname, 'users', hash);
         const newDirectoryName = `[X]${hash}`;
         fs.renameSync(directory, path.join(__dirname, 'users', newDirectoryName));
-        return bot.replyMessage(event.replyToken, { type: 'text', text: '已經開啟新話題', quickReply });
+        return bot.replyMessage(event.replyToken, { type: 'text', text: '新話題已開啟', quickReply });
       }
     case '!model查詢':
       {
         const { currentModel } = await getCustomConfig(hash);
         return bot.replyMessage(event.replyToken, { type: 'text', text: `目前使用: ${currentModel}`, quickReply });
       }
-    case '!GPT-3.5-Turbo':
+    case '!製作圖片':
       {
-        saveCustomfile(hash, 'gpt-3.5-turbo');
-        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: gpt-3.5-turbo`, quickReply });
+        saveCustomFile(hash, 'dall-e-3');
+        return bot.replyMessage(event.replyToken, { type: 'text', text: '請輸入文字描述', quickReply });
       }
     case '!GPT-4-Turbo':
       {
-        saveCustomfile(hash, 'gpt-4-turbo-preview');
-        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: gpt-4-turbo-preview`, quickReply });
+        saveCustomFile(hash, 'gpt-4-turbo-preview');
+        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: ${requestString.replace('!', '')}`, quickReply });
       }
+    case '!GPT-3.5-Turbo':
     case '!GPT-4-0125-Preview':
       {
-        saveCustomfile(hash, 'gpt-4-0125-preview');
-        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: gpt-4-0125-preview`, quickReply });
+        saveCustomFile(hash, requestString.replace('!', '').toLowerCase());
+        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: ${requestString.replace('!', '')}`, quickReply });
       }
     default:
       {
         const { currentModel } = await getCustomConfig(hash);
+        if (currentModel === 'dall-e-3' && requestString.length > 0) {
+          const imageGenerationResponse = await generateImage(requestString);
+          if (imageGenerationResponse) {
+            const imageUrl = imageGenerationResponse.data[0].url;
+            const fileName = `${imageGenerationResponse.created}.txt`;
+            const directory = path.join(__dirname, 'images', hash);
+            if (!fs.existsSync(directory)) {
+              fs.mkdirSync(directory);
+            }
+            const filePath = path.join(directory, fileName);
+            const content = `User: ${userId}\n\nPrompt: ${requestString}\n\nImage: ${imageUrl}\n\nrevised_prompt: ${imageGenerationResponse.data[0].revised_prompt}`;
+            fs.writeFileSync(filePath, content);
+
+            bot.replyMessage(event.replyToken,
+              {
+                type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl, notificationDisabled: true,
+                quickReply
+              })
+            // bot.replyMessage(event.replyToken,
+            //   {
+            //     type: 'text',
+            //     text: `圖片生成成功\n${imageUrl}`,
+            //     notificationDisabled: true,
+            //     quickReply
+            //   });
+            return
+          } else {
+            return bot.replyMessage(event.replyToken, { type: 'text', text: '圖片生成失敗' });
+          }
+        }
         const previousMessages = await getPreviousMessages(hash);
         const messages = [
           { role: "system", content: '#zh-tw As a system, my role is to provide direct and concise answers in a contextual and conversational style. My responses should be casual and avoid opposition, warning, or summarization. I should not provide abstract or detailed explanations or trace the origins of a question.' },
@@ -171,7 +202,7 @@ async function getPreviousMessages(hash) {
   }
 }
 
-function saveCustomfile(hash, model) {
+function saveCustomFile(hash, model) {
   const directory = path.join(__dirname, 'custom');
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory);
@@ -199,9 +230,46 @@ async function getCustomConfig(hash) {
     }
   }
 }
+async function generateImage(prompt) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      url: `${OPENAI_END_POINT}/v1/images/generations`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      json: {
+        "model": "dall-e-3",
+        "prompt": prompt,
+        "n": 1,
+        "size": "1024x1024"
+      }
+    };
 
-// 啟動伺服器
+    request.post(options, (error, response, body) => {
+      if (error) {
+        console.error(error);
+        reject(error);
+      } else {
+        resolve(body);
+      }
+    });
+  });
+}
+
+function postRequest(options) {
+  return new Promise((resolve, reject) => {
+    request.post(options, (error, response, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ response, body });
+      }
+    });
+  });
+}
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Chatbot server is running on ${port}`);
+  console.log(`Chatbot 伺服器正在執行於 ${port} 連接埠`);
 });
