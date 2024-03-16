@@ -24,7 +24,8 @@ const quickReply = {
     createQuickReplyItem("新話題", "!新話題"),
     createQuickReplyItem("model查詢", "!model查詢"),
     createQuickReplyItem("GPT-3.5", "!GPT-3.5-Turbo"),
-    createQuickReplyItem("GPT-4", "!GPT-4-0125-Preview")
+    createQuickReplyItem("GPT-4-Turbo", "!GPT-4-Turbo"),
+    // createQuickReplyItem("GPT-4", "!GPT-4-0125-Preview")
   ]
 };
 
@@ -84,6 +85,11 @@ async function handleEvent(event) {
       {
         saveCustomfile(hash, 'gpt-3.5-turbo');
         return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: gpt-3.5-turbo`, quickReply });
+      }
+    case '!GPT-4-Turbo':
+      {
+        saveCustomfile(hash, 'gpt-4-turbo-preview');
+        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: gpt-4-turbo-preview`, quickReply });
       }
     case '!GPT-4-0125-Preview':
       {
