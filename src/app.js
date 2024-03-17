@@ -5,6 +5,7 @@ const request = require('request');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 
 const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 const CHANNEL_SECRET = process.env.CHANNEL_SECRET;
@@ -69,12 +70,17 @@ async function handleEvent(event) {
   const requestString = message.text;
 
   switch (requestString) {
+    case '!help':
+      {
+        const helpMessage = `輸入以下指令可以進行操作：\n\n!新話題\n!model查詢\n!GPT-3.5-Turbo\n!GPT-4-Turbo\n!製作圖片`;
+        return bot.replyMessage(event.replyToken, { type: 'text', text: helpMessage, quickReply });
+      }
     case '!新話題':
       {
         const directory = path.join(__dirname, 'users', hash);
-        const newDirectoryName = `[X]${hash}`;
+        const newDirectoryName = `[X]${hash}_${Date.now()}`;
         fs.renameSync(directory, path.join(__dirname, 'users', newDirectoryName));
-        return bot.replyMessage(event.replyToken, { type: 'text', text: '新話題已開啟', quickReply });
+        return bot.replyMessage(event.replyToken, { type: 'text', text: '開啟新話題囉！', quickReply });
       }
     case '!model查詢':
       {
@@ -84,35 +90,47 @@ async function handleEvent(event) {
     case '!製作圖片':
       {
         saveCustomFile(hash, 'dall-e-3');
-        return bot.replyMessage(event.replyToken, { type: 'text', text: '請輸入文字描述', quickReply });
+        return bot.replyMessage(event.replyToken, { type: 'text', text: '告訴我你想要畫什麼？', quickReply });
       }
     case '!GPT-4-Turbo':
       {
         saveCustomFile(hash, 'gpt-4-turbo-preview');
-        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: ${requestString.replace('!', '')}`, quickReply });
+        return bot.replyMessage(event.replyToken, { type: 'text', text: `已經切換到： ${requestString.replace('!', '')}`, quickReply });
       }
     case '!GPT-3.5-Turbo':
     case '!GPT-4-0125-Preview':
       {
         saveCustomFile(hash, requestString.replace('!', '').toLowerCase());
-        return bot.replyMessage(event.replyToken, { type: 'text', text: `已切換至: ${requestString.replace('!', '')}`, quickReply });
+        return bot.replyMessage(event.replyToken, { type: 'text', text: `已經切換到： ${requestString.replace('!', '')}`, quickReply });
       }
     default:
       {
         const { currentModel } = await getCustomConfig(hash);
         if (currentModel === 'dall-e-3' && requestString.length > 0) {
-          bot.replyMessage(event.replyToken, { type: 'text', text: '圖片產生中，請稍後...', quickReply });
+          bot.replyMessage(event.replyToken, { type: 'text', text: '圖片繪製中，請稍等...', quickReply });
           const imageGenerationResponse = await generateImage(requestString);
           if (imageGenerationResponse) {
             const imageUrl = imageGenerationResponse.data[0].url;
-            const fileName = `${imageGenerationResponse.created}.txt`;
+            // const fileName = `${imageGenerationResponse.created}.txt`;
+            const imageFileName = `${imageGenerationResponse.created}.jpg`; // 圖片檔案名稱
+            const textFileName = `${imageGenerationResponse.created}.txt`; // 文字檔案名稱
             const directory = path.join(__dirname, 'images', hash);
             if (!fs.existsSync(directory)) {
               fs.mkdirSync(directory);
             }
-            const filePath = path.join(directory, fileName);
+            // const filePath = path.join(directory, fileName);
+            const imagePath = path.join(directory, imageFileName);
+            const textPath = path.join(directory, textFileName);
+
+            // 使用 fetch 下載圖片
+            const response = await fetch(imageUrl);
+            const buffer = await response.buffer();
+
+            // 將圖片檔案寫入指定路徑
+            fs.writeFileSync(imagePath, buffer);
+
             const content = `User: ${userId}\n\nPrompt: ${requestString}\n\nImage: ${imageUrl}\n\nrevised_prompt: ${imageGenerationResponse.data[0].revised_prompt}`;
-            fs.writeFileSync(filePath, content);
+            fs.writeFileSync(textPath, content);
 
             bot.pushMessage(event.source.userId,
               {
