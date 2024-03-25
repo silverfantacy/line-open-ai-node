@@ -147,7 +147,7 @@ async function handleEvent(event) {
         }
         const previousMessages = await getPreviousMessages(hash);
         const messages = [
-          { role: "system", content: '#zh-tw As a system, my role is to provide direct and concise answers in a contextual and conversational style. My responses should be casual and avoid opposition, warning, or summarization. I should not provide abstract or detailed explanations or trace the origins of a question.' },
+          { role: "system", content: '#zh-tw Aim to provide answers within the specified token limit. If the content exceeds the limit, continue the response from where it left off when the user inputs \"continue.\" As an AI system, my role is to provide direct, concise, and conversational answers. Please avoid providing opposing views, warnings, or summarizations. I won\'t provide abstract or detailed explanations, nor will I trace the origins of a question. Please answer the user\'s questions in a clear and straightforward manner.' },
           ...previousMessages,
           { role: "user", content: requestString }
         ];
@@ -161,7 +161,7 @@ async function handleEvent(event) {
             model: currentModel,
             messages,
             temperature: 0.9,
-            max_tokens: 256 * 1,
+            max_tokens: 256 * 3,
             top_p: 1,
             frequency_penalty: 0,
             presence_penalty: 0.6,
