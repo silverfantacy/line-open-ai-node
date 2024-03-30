@@ -110,6 +110,10 @@ async function handleEvent(event) {
           bot.replyMessage(event.replyToken, { type: 'text', text: '圖片繪製中，請稍等...', quickReply });
           const imageGenerationResponse = await generateImage(requestString);
           if (imageGenerationResponse) {
+            // error handling
+            if (imageGenerationResponse.error) {
+              return bot.pushMessage(event.source.userId, { type: 'text', text: `[${imageGenerationResponse.error.type}]${imageGenerationResponse.error.message}`, quickReply });
+            }
             const imageUrl = imageGenerationResponse.data[0].url;
             // const fileName = `${imageGenerationResponse.created}.txt`;
             const imageFileName = `${imageGenerationResponse.created}.jpg`; // 圖片檔案名稱
