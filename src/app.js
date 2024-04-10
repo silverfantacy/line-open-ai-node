@@ -98,7 +98,7 @@ async function handleEvent(event) {
         return bot.replyMessage(event.replyToken, { type: 'text', text: `已經切換到： ${requestString.replace('!', '')}`, quickReply });
       }
     case '!GPT-3.5-Turbo':
-    case '!GPT-4-0125-Preview':
+    case '!GPT-4-Turbo-Preview':
       {
         saveCustomFile(hash, requestString.replace('!', '').toLowerCase());
         return bot.replyMessage(event.replyToken, { type: 'text', text: `已經切換到： ${requestString.replace('!', '')}`, quickReply });
