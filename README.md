@@ -2,6 +2,9 @@
 
 這是一個使用 LINE Bot 和 OpenAI GPT 模型的聊天機器人程式。
 
+## 環境
+node.js v20.12.2
+
 ## 安裝
 
 1. 複製程式碼到你的專案資料夾中。
@@ -22,6 +25,15 @@
    ```
    npm start
    ```
+5. 建議使用 [pm2](https://www.npmjs.com/package/pm2) 來管理 Node.js 伺服器，以確保伺服器能夠持續運行：
+   ```
+   npm install -g pm2
+   pm2 start line-bot-gpt-node
+   pm2 restart line-bot-gpt-node
+   pm2 stop line-bot-gpt-node
+   pm2 log
+   ```
+
 
 ## 使用
 

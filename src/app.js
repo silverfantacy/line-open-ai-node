@@ -1,11 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const line = require('@line/bot-sdk');
-const request = require('request');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const fetch = require('node-fetch');
+import 'dotenv/config';
+import express from 'express';
+import { Client, middleware } from '@line/bot-sdk';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import fetch from 'node-fetch';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 const CHANNEL_SECRET = process.env.CHANNEL_SECRET;
@@ -18,7 +23,7 @@ const config = {
   channelAccessToken: CHANNEL_ACCESS_TOKEN,
   channelSecret: CHANNEL_SECRET
 };
-const bot = new line.Client(config);
+const bot = new Client(config);
 
 const quickReply = {
   items: [
@@ -46,7 +51,7 @@ function createQuickReplyItem(label, text) {
 const app = express();
 
 // 設定 webhook 處理函式
-app.post('/webhook', line.middleware(config), handleWebhook);
+app.post('/webhook', middleware(config), handleWebhook);
 
 async function handleWebhook(req, res) {
   try {
@@ -128,10 +133,10 @@ async function handleEvent(event) {
 
             // 使用 fetch 下載圖片
             const response = await fetch(imageUrl);
-            const buffer = await response.buffer();
+            const buffer = await response.arrayBuffer();
 
             // 將圖片檔案寫入指定路徑
-            fs.writeFileSync(imagePath, buffer);
+            fs.writeFileSync(imagePath, Buffer.from(buffer));
 
             const content = `User: ${userId}\n\nPrompt: ${requestString}\n\nImage: ${imageUrl}\n\nrevised_prompt: ${imageGenerationResponse.data[0].revised_prompt}`;
             fs.writeFileSync(textPath, content);
@@ -174,27 +179,37 @@ async function handleEvent(event) {
         };
 
         return new Promise((resolve, reject) => {
-          request.post(options, (error, response, body) => {
-            if (body.error) {
-              bot.replyMessage(event.replyToken, { type: 'text', text: `[${body.error.type}]${body.error.message}` });
-              reject(body.error);
-            } else {
-              const fileName = `${body.id}.txt`;
-              const directory = path.join(__dirname, 'users', hash);
-              if (!fs.existsSync(directory)) {
-                fs.mkdirSync(directory);
+          fetch(options.url, {
+            method: 'POST',
+            headers: options.headers,
+            body: JSON.stringify(options.json)
+          })
+            .then(response => response.json())
+            .then(body => {
+              if (body.error) {
+                bot.replyMessage(event.replyToken, { type: 'text', text: `[${body.error.type}]${body.error.message}` });
+                reject(body.error);
+              } else {
+                const fileName = `${body.id}.txt`;
+                const directory = path.join(__dirname, 'users', hash);
+                if (!fs.existsSync(directory)) {
+                  fs.mkdirSync(directory);
+                }
+                const filePath = path.join(directory, fileName);
+                const content = `Question: ${message.text}\n\nAnswer: ${body.choices[0].message.content.trim()}`;
+                fs.writeFileSync(filePath, content);
+                resolve(bot.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: body.choices[0].message.content.trim(),
+                  // notificationDisabled: true,
+                  quickReply
+                }));
               }
-              const filePath = path.join(directory, fileName);
-              const content = `Question: ${message.text}\n\nAnswer: ${body.choices[0].message.content.trim()}`;
-              fs.writeFileSync(filePath, content);
-              resolve(bot.replyMessage(event.replyToken, {
-                type: 'text',
-                text: body.choices[0].message.content.trim(),
-                // notificationDisabled: true,
-                quickReply
-              }));
-            }
-          });
+            })
+            .catch(error => {
+              // Handle error
+              reject(error);
+            });
         });
       }
   }
@@ -249,6 +264,7 @@ async function getCustomConfig(hash) {
     }
   }
 }
+
 async function generateImage(prompt) {
   return new Promise((resolve, reject) => {
     const options = {
@@ -265,26 +281,14 @@ async function generateImage(prompt) {
       }
     };
 
-    request.post(options, (error, response, body) => {
-      if (error) {
-        console.error(error);
-        reject(error);
-      } else {
-        resolve(body);
-      }
-    });
-  });
-}
-
-function postRequest(options) {
-  return new Promise((resolve, reject) => {
-    request.post(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve({ response, body });
-      }
-    });
+    fetch(options.url, {
+      method: 'POST',
+      headers: options.headers,
+      body: JSON.stringify(options.json)
+    })
+      .then(response => response.json())
+      .then(data => resolve(data))
+      .catch(error => reject(error));
   });
 }
 
