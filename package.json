@@ -8,11 +8,11 @@
     "start": "npm install && node ."
   },
   "dependencies": {
-    "@line/bot-sdk": "^9.2.0",
+    "@line/bot-sdk": "^9.2.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "node-fetch": "^3.3.2",
-    "openai": "^4.38.2",
+    "openai": "^4.47.1",
     "request": "^2.88.2"
   }
 }
