@@ -71,6 +71,7 @@ async function handleEvent(event) {
   const userId = 'line_' + event.source.userId;
   const hash = crypto.createHash('sha256').update(userId).digest('hex');
 
+  await showLoadingAnimation(event);
 
   switch (message.type) {
     // 處理圖片訊息
@@ -150,6 +151,7 @@ async function handleEvent(event) {
             const { currentModel } = await getCustomConfig(hash);
             if (currentModel === 'dall-e-3' && requestString.length > 0) {
               bot.replyMessage(event.replyToken, { type: 'text', text: '圖片繪製中，請稍等...', quickReply });
+              await showLoadingAnimation(event);
               const imageGenerationResponse = await generateImage(requestString, '1792x1024');
               if (imageGenerationResponse) {
                 // error handling
@@ -364,6 +366,21 @@ async function generateImage(prompt, size = '1024x1024') {
       .then(response => response.json())
       .then(data => resolve(data))
       .catch(error => reject(error));
+  });
+}
+
+// LINE Loading Animation
+async function showLoadingAnimation(event, seconds = 10) {
+  await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.channelAccessToken}`
+    },
+    body: JSON.stringify({
+      chatId: event.source.userId,
+      loadingSeconds: seconds
+    })
   });
 }
 
