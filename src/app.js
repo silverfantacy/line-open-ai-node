@@ -1,9 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
-import { Client, middleware, messagingApi } from '@line/bot-sdk';
+import { Client, middleware } from '@line/bot-sdk';
+
+// 新寫法參考：https://github.com/line/line-bot-sdk-nodejs/blob/master/examples/echo-bot-esm/index.js
+// import * as line from '@line/bot-sdk' 
+
 import crypto from 'crypto';
 import fs from 'fs';
-import path from 'path';
+import path, { resolve } from 'path';
 import fetch from 'node-fetch';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -24,6 +28,9 @@ const config = {
   channelSecret: CHANNEL_SECRET
 };
 const bot = new Client(config);
+
+// 新寫法
+// const bot = new line.messagingApi.MessagingApiClient(config);
 
 const quickReply = {
   items: [
@@ -53,6 +60,8 @@ const app = express();
 
 // 設定 webhook 處理函式
 app.post('/webhook', middleware(config), handleWebhook);
+// 新寫法
+// app.post('/webhook', line.middleware(config), handleWebhook);
 
 async function handleWebhook(req, res) {
   try {
@@ -71,6 +80,7 @@ async function handleEvent(event) {
   const userId = 'line_' + event.source.userId;
   const hash = crypto.createHash('sha256').update(userId).digest('hex');
 
+  await markMessagesAsRead(event);
   await showLoadingAnimation(event);
 
   switch (message.type) {
@@ -380,6 +390,22 @@ async function showLoadingAnimation(event, seconds = 10) {
     body: JSON.stringify({
       chatId: event.source.userId,
       loadingSeconds: seconds
+    })
+  });
+}
+
+// LINE markMessagesAsRead
+async function markMessagesAsRead(event) {
+  await fetch('https://api.line.me/v2/bot/message/markAsRead', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.channelAccessToken}`
+    },
+    body: JSON.stringify({
+      "chat": {
+        "userId": event.source.userId
+      }
     })
   });
 }
