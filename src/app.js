@@ -233,7 +233,7 @@ async function postOpenAI(hash, messageContent, event, currentModel) {
   }
 
   const messages = [
-    { role: "system", content: '#zh-tw Aim to provide answers within the specified token limit. If the content exceeds the limit, continue the response from where it left off when the user inputs \"continue.\" As an AI system, my role is to provide direct, concise, and conversational answers. Please avoid providing opposing views, warnings, or summarizations. I won\'t provide abstract or detailed explanations, nor will I trace the origins of a question. Please answer the user\'s questions in a clear and straightforward manner.' },
+    { role: "system", content: '請盡量使用繁體中文回答。 #zh-tw Aim to provide answers within the specified token limit. If the content exceeds the limit, continue the response from where it left off when the user inputs \"continue.\" As an AI system, my role is to provide direct, concise, and conversational answers. Please avoid providing opposing views, warnings, or summarizations. I won\'t provide abstract or detailed explanations, nor will I trace the origins of a question. Please answer the user\'s questions in a clear and straightforward manner.' },
     ...previousMessages,
     {
       role: "user", content
@@ -313,7 +313,7 @@ async function getPreviousMessages(hash) {
   }
 
   const files = fs.readdirSync(directory);
-  const lastThreeFiles = files.slice(-3);
+  const lastThreeFiles = files.slice(-5);
   const messages = lastThreeFiles.flatMap(file => {
     const content = fs.readFileSync(path.join(directory, file), 'utf-8');
     return JSON.parse(content);
